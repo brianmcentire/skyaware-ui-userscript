@@ -10,7 +10,7 @@ Press Play to see it in action:
 ## Installation
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/) for your browser
-2. Click [here](skyaware-ui-enhance.user.js) to install the script
+2. [Click here to install with Tampermonkey](https://raw.githubusercontent.com/brianmcentire/skyaware-ui-userscript/main/skyaware-ui-enhance.user.js)
 3. Refresh your SkyAware page
 
 ## Features
