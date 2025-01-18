@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         SkyAware Planes Header Row and Info Block Freeze
+// @name         SkyAware Info Block and Planes Header Freeze
 // @namespace    https://github.com/brianmcentire
-// @version      1.1
-// @description  Keep the skyaware table header pinned without jumping and improve table styling
+// @version      1.6
+// @description  Enhanced SkyAware interface by keeping info block and planes table headers visible while scrolling
 // @author       Brian McEntire
 // @homepage     https://github.com/brianmcentire/skyaware-ui-userscript
 // @license      MIT
@@ -13,143 +13,222 @@
 // ==/UserScript==
 
 /*
- * SkyAware Planes Header Row and Info Block Freeze
+ * SkyAware Enhanced UI
  * Copyright (c) 2025 Brian McEntire
- *
- * A Tampermonkey script that enhances the SkyAware interface by:
- * - Making the table header sticky
- * - Hiding scrollbars while maintaining functionality
- * - Preserving the look of SkyAware
  */
 
-(function () {
-  "use strict";
-  function injectStyles() {
-    const css = `
-          /* Container styles */
-          #planes_table_container {
-            max-height: 70vh;
-            overflow-y: auto;
-            position: relative;
-            /* Prevent margin collapsing */
-            padding-top: 1px;
-            margin-top: -1px;
-            background-color: #ffffff;
+(function() {
+    "use strict";
 
-            /* Hide scrollbar but keep functionality - Firefox */
-            scrollbar-width: none;
-            /* Hide scrollbar but keep functionality - IE, Edge */
-            -ms-overflow-style: none;
-          }
+    function injectStyles() {
+        const css = `
+            /* Container styles */
+            #planes_table_container {
+                height: calc(100vh - 220px);
+                position: relative;
+                background-color: #ffffff;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
 
-          /* Hide scrollbar but keep functionality - Chrome, Safari, Opera */
-          #planes_table_container::-webkit-scrollbar {
-            display: none;
-          }
+            /* Optimize sidebar container */
+            #sidebar_container {
+                height: calc(100vh - 60px) !important;
+                overflow: hidden !important;
+            }
 
-          /* Also hide horizontal scrollbar in the table wrapper */
-          #planes_table {
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-          }
+            #sidebar_canvas {
+                height: 100%;
+                overflow: hidden;
+            }
 
-          #planes_table::-webkit-scrollbar {
-            display: none;
-          }
+            /* Table wrapper styles */
+            #planes_table {
+                flex: 1 1 auto;
+                overflow-x: auto;
+                overflow-y: auto;
+                position: relative;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
 
-          /* Table base styles */
-          #planes_table_container #tableinfo {
-            border-collapse: separate;
-            border-spacing: 0;
-            text-indent: initial;
-            font-size: small;
-            background-color: white;
-          }
+            #planes_table::-webkit-scrollbar {
+                display: none;
+            }
 
-          /* Header styles */
-          #planes_table_container .aircraft_table_header {
-            position: sticky;
-            top: 0;
-            z-index: 9999;
-            background-color: #002F5D;
-            color: #FFFFFF;
-            cursor: pointer;
-            white-space: nowrap;
-            /* Force pixel alignment */
-            transform: translateY(0);
-            /* Ensure header is on its own layer */
-            isolation: isolate;
-            margin: 0;
-          }
+            /* Table base styles */
+            #tableinfo {
+                border-collapse: separate;
+                border-spacing: 0;
+                text-indent: initial;
+                font-size: small;
+                background-color: white;
+                width: 100%;
+            }
 
-          /* Header cell styles */
-          #planes_table_container .aircraft_table_header td {
-            font-size: smaller;
-            padding: 5px;
-            text-align: center;
-            vertical-align: inherit;
-            unicode-bidi: isolate;
-            border: 1px solid #fff;
-          }
+            /* Header styles */
+            .aircraft_table_header {
+                position: sticky;
+                top: 0;
+                z-index: 89;
+                background-color: #002F5D;
+                color: #FFFFFF;
+                cursor: pointer;
+                white-space: nowrap;
+                transform: translateY(0);
+                isolation: isolate;
+            }
 
-          /* Force header cells to touch */
-          #planes_table_container .aircraft_table_header td + td {
-            border-left: 1px solid #fff;
-          }
+            .aircraft_table_header td {
+                font-size: smaller;
+                padding: 5px;
+                text-align: center;
+                border: 1px solid #fff;
+            }
 
-          /* Tbody specific styles */
-          #planes_table_container #tableinfo tbody tr {
-            background-clip: padding-box;
-            border: 1px solid white;
-          }
+            .aircraft_table_header td + td {
+                border-left: 1px solid #fff;
+            }
 
-          #planes_table_container #tableinfo tbody td {
-            padding: 2px;
-            outline: 1px solid white;
-            outline-offset: -1px;
-          }
+            /* Panel styles */
+            #filter_panel, #column_select_panel {
+                position: relative;
+                z-index: 88;
+                background: white;
+                margin-bottom: 10px;
+            }
 
-          /* Preserve all row background colors */
-          #planes_table_container .vPosition { background-color: #E5F6FC; }
-          #planes_table_container .uat { background-color: #CDF7D0; }
-          #planes_table_container .mlat { background-color: #FDF2E5; }
-          #planes_table_container .other { background-color: #CCD5F8; }
-          #planes_table_container .tisb { background-color: #FFF3B8; }
-          #planes_table_container .squawk7500 { font-weight: bold; background-color: #ff5555; }
-          #planes_table_container .squawk7600 { font-weight: bold; background-color: #00ffff; }
-          #planes_table_container .squawk7700 { font-weight: bold; background-color: #ffff00; }
-          #planes_table_container .selected { background-color: #dddddd; }
+            /* Tbody specific styles */
+            #tableinfo tbody tr {
+                background-clip: padding-box;
+                border: 1px solid white;
+            }
 
-          /* Data row styles */
-          #planes_table_container .plane_table_row {
-            cursor: pointer;
-            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-          }
+            #tableinfo tbody td {
+                padding: 2px;
+                outline: 1px solid white;
+                outline-offset: -1px;
+            }
+
+            /* Row background colors */
+            .vPosition { background-color: #E5F6FC; }
+            .uat { background-color: #CDF7D0; }
+            .mlat { background-color: #FDF2E5; }
+            .other { background-color: #CCD5F8; }
+            .tisb { background-color: #FFF3B8; }
+            .squawk7500 { font-weight: bold; background-color: #ff5555; }
+            .squawk7600 { font-weight: bold; background-color: #00ffff; }
+            .squawk7700 { font-weight: bold; background-color: #ffff00; }
+            .selected { background-color: #dddddd; }
+
+            .plane_table_row {
+                cursor: pointer;
+                font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            }
+
+            /* Legend container */
+            #planes_table_container > div:nth-child(2) {
+                flex: 0 0 auto;
+                background: white;
+                padding: 5px 0;
+                z-index: 87;
+                border-top: 1px solid #eee;
+            }
+
+            .legend {
+                display: flex !important;
+                align-items: center;
+                justify-content: flex-end;
+                min-height: 25px;
+                padding: 5px 10px;
+                background: white;
+            }
+
+            /* Info block styles */
+            #selected_infoblock {
+                position: sticky !important;
+                bottom: 0;
+                background: white;
+                z-index: 86;
+            }
         `;
-    const style = document.createElement("style");
-    style.textContent = css;
-    document.head.appendChild(style);
-  }
 
-  function checkElements() {
-    const tableContainerExists = !!document.querySelector(
-      "#planes_table_container"
-    );
-    const tableExists = !!document.querySelector("#tableinfo");
-    /*
-        console.log('Looking for table container:', tableContainerExists);
-        console.log('Looking for table #tableinfo:', tableExists);
-*/
-    if (tableContainerExists && tableExists) {
-      injectStyles();
-      observer.disconnect();
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.appendChild(style);
     }
-  }
 
-  // Observe DOM for dynamic changes
-  const observer = new MutationObserver(checkElements);
-  observer.observe(document.body, { childList: true, subtree: true });
+    function setupDynamicTableHeight() {
+        const filterPanel = document.querySelector("#filter_panel");
+        const columnSelectPanel = document.querySelector("#column_select_panel");
+        const planesTableContainer = document.querySelector("#planes_table_container");
 
-  // Initial check
-  checkElements();
+        function updateTableHeight() {
+            const filterPanelHeight = filterPanel.style.display !== 'none' ? filterPanel.offsetHeight + 10 : 0;
+            const columnSelectPanelHeight = columnSelectPanel.style.display !== 'none' ? columnSelectPanel.offsetHeight + 10 : 0;
+            const totalPanelHeight = filterPanelHeight + columnSelectPanelHeight;
+
+            planesTableContainer.style.height = `calc(100vh - 220px - ${totalPanelHeight}px)`;
+        }
+
+        const panelObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    // Removed setTimeout to make changes immediate
+                    updateTableHeight();
+                }
+            });
+        });
+
+        panelObserver.observe(filterPanel, { attributes: true });
+        panelObserver.observe(columnSelectPanel, { attributes: true });
+
+        updateTableHeight();
+
+        window.addEventListener('resize', updateTableHeight); // Removed setTimeout here too
+    }
+
+    function checkElements() {
+        const requiredElements = [
+            "#planes_table_container",
+            "#tableinfo",
+            "#filter_panel",
+            "#column_select_panel",
+            ".legend",
+            "#sidebar_container"
+        ];
+
+        const allElementsExist = requiredElements.every(selector =>
+            !!document.querySelector(selector)
+        );
+
+        if (allElementsExist) {
+            injectStyles();
+            setupDynamicTableHeight();
+            observer.disconnect();
+        }
+    }
+
+    // Observe DOM for dynamic changes
+    const observer = new MutationObserver(checkElements);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Initial check
+    checkElements();
+})();// ==UserScript==
+// @name         New Userscript
+// @namespace    http://tampermonkey.net/
+// @version      2025-01-18
+// @description  try to take over the world!
+// @author       You
+// @match        http://*/*
+// @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Your code here...
 })();
