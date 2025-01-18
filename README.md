@@ -3,6 +3,8 @@
 A userscript that modifies the SkyAware interface by making the heading row on the aircraft table sticky, freezes
 the info block above it, and removes scrollbars while maintaining scrolling functionality.
 
+![Demo](assets/skyaware-ui-mod-demo.gif)
+
 ## Installation
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/) for your browser
